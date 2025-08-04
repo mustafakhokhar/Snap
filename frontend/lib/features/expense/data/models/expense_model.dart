@@ -36,4 +36,16 @@ class ExpenseModel extends Expense {
         amount: expense.amount,
         date: expense.date);
   }
+
+  Expense toEntity() {
+    return Expense(
+      id: id,
+      name: name,
+      category: category,
+      description: description,
+      title: title,
+      amount: amount,
+      date: date,
+    );
+  }
 }
