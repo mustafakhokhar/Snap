@@ -19,7 +19,7 @@ class _HomeScreenState extends State<HomeScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: _tabs.length, vsync: this);
   }
 
   @override
@@ -32,13 +32,14 @@ class _HomeScreenState extends State<HomeScreen>
   Widget build(BuildContext context) {
     final height = MediaQuery.of(context).size.height;
     return DefaultTabController(
-      length: 3,
+      length: _tabs.length,
       child: Scaffold(
         appBar: AppBar(
           elevation: 0,
           centerTitle: false,
           title: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
+            // Greeting and name
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -64,10 +65,10 @@ class _HomeScreenState extends State<HomeScreen>
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.2),
+                    color: Colors.black.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                      color: Colors.white.withOpacity(0.3),
+                      color: Colors.white.withValues(alpha: 0.3),
                       width: 1,
                     ),
                   ),
@@ -119,7 +120,7 @@ class _HomeScreenState extends State<HomeScreen>
         body: TabBarView(
           controller: _tabController,
           children: [
-            _buildTabContent('Today'),
+            _buildTodayContent(),
             _buildTabContent('This Week'),
             _buildTabContent('This Month'),
           ],
@@ -173,8 +174,57 @@ class _HomeScreenState extends State<HomeScreen>
       ),
     );
   }
-}
 
+  Widget _buildTodayContent() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Expenses for Today',
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+          ),
+          const SizedBox(height: 16),
+          _emptyExpenseState(),
+        ],
+      ),
+    );
+  }
+
+  Widget _emptyExpenseState() {
+    return Expanded(
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.receipt_long,
+              size: 64,
+              color: Colors.grey[400],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'No expenses for Today',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: Colors.grey[600],
+                  ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Add your first expense to get started!',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Colors.grey[500],
+                  ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 // class HomeScreen extends StatefulWidget {
 //   @override
 //   _HomeScreenState createState() => _HomeScreenState();
@@ -317,3 +367,4 @@ class _HomeScreenState extends State<HomeScreen>
 //   );
 // }
 // }
+
