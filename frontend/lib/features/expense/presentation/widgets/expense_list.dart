@@ -2,17 +2,29 @@ import 'package:flutter/material.dart';
 import 'package:frontend/features/expense/domain/entity/expense.dart';
 import 'package:frontend/features/expense/presentation/widgets/expense_card.dart';
 
-Widget buildExpenseListSheet(BuildContext context, List<Expense> expenses) {
-  // Group by calendar day and sort desc (newest first)
+Widget buildExpenseListSheet(
+  BuildContext context,
+  List<Expense> expenses, 
+  Map<String, String> categoryFilterFor,
+  
+  {
+  required String period,
+  ScrollController? controller,
+  Map<DateTime, GlobalKey>? dayKeys,
+}) {
+  // Apply category filter
+  final sel = categoryFilterFor[period] ?? 'All';
+  final data = sel == 'All'
+      ? expenses
+      : expenses.where((e) => categoryOf(e) == sel).toList();
+
+  // Group by day (newest first)
   final Map<DateTime, List<Expense>> grouped = {};
-  for (final e in expenses) {
+  for (final e in data) {
     final day = DateTime(e.date.year, e.date.month, e.date.day);
     (grouped[day] ??= []).add(e);
   }
-  final days = grouped.keys.toList()
-    ..sort((a, b) => b.compareTo(a)); // newest first
-
-  final isIOS = Theme.of(context).platform == TargetPlatform.iOS;
+  final days = grouped.keys.toList()..sort((a, b) => b.compareTo(a));
 
   return Container(
     decoration: BoxDecoration(
@@ -29,17 +41,12 @@ Widget buildExpenseListSheet(BuildContext context, List<Expense> expenses) {
         ),
       ],
     ),
-    child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
-      decoration: const BoxDecoration(
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(20),
-          topRight: Radius.circular(20),
-        ),
-      ),
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: CustomScrollView(
+        controller: controller,
         cacheExtent: 800,
-        physics: isIOS
+        physics: Theme.of(context).platform == TargetPlatform.iOS
             ? const BouncingScrollPhysics(
                 parent: AlwaysScrollableScrollPhysics())
             : const ClampingScrollPhysics(),
@@ -60,6 +67,7 @@ Widget buildExpenseListSheet(BuildContext context, List<Expense> expenses) {
               ),
             ),
           ),
+
           // sections
           for (final day in days) ...[
             SliverPersistentHeader(
@@ -70,6 +78,9 @@ Widget buildExpenseListSheet(BuildContext context, List<Expense> expenses) {
                 textColor: Theme.of(context).textTheme.titleSmall?.color ??
                     Colors.white,
                 height: 32,
+                // NEW: pass a key so we can jump to this header
+                headerKey:
+                    dayKeys == null ? null : (dayKeys[day] = GlobalKey()),
               ),
             ),
             SliverList(
@@ -85,7 +96,6 @@ Widget buildExpenseListSheet(BuildContext context, List<Expense> expenses) {
             const SliverToBoxAdapter(child: SizedBox(height: 12)),
           ],
 
-          // bottom safe gap
           const SliverToBoxAdapter(child: SizedBox(height: 8)),
         ],
       ),
@@ -128,12 +138,14 @@ class _SectionHeaderDelegate extends SliverPersistentHeaderDelegate {
   final Color background;
   final Color textColor;
   final double height;
+  final GlobalKey? headerKey; // NEW
 
   _SectionHeaderDelegate({
     required this.title,
     required this.background,
     required this.textColor,
     this.height = 36,
+    this.headerKey,
   });
 
   @override
@@ -144,7 +156,7 @@ class _SectionHeaderDelegate extends SliverPersistentHeaderDelegate {
   @override
   Widget build(
       BuildContext context, double shrinkOffset, bool overlapsContent) {
-    return Material(
+    final child = Material(
       color: background,
       elevation: overlapsContent ? 1 : 0,
       child: Container(
@@ -159,6 +171,11 @@ class _SectionHeaderDelegate extends SliverPersistentHeaderDelegate {
         ),
       ),
     );
+
+    // Wrap with a key container only if provided (so we can jump to it)
+    return headerKey == null
+        ? child
+        : KeyedSubtree(key: headerKey, child: child);
   }
 
   @override
@@ -166,5 +183,31 @@ class _SectionHeaderDelegate extends SliverPersistentHeaderDelegate {
       old.title != title ||
       old.background != background ||
       old.textColor != textColor ||
-      old.height != height;
+      old.height != height ||
+      old.headerKey != headerKey;
+}
+
+
+
+String categoryOf(Expense e) {
+  // If your model already has e.category, just return that.
+  final t = '${e.title} ${e.description}'.toLowerCase();
+  if (t.contains('grocery') || t.contains('market') || t.contains('super'))
+    return 'Groceries';
+  if (t.contains('restaurant') ||
+      t.contains('food') ||
+      t.contains('coffee') ||
+      t.contains('lunch')) return 'Food & Drink';
+  if (t.contains('transport') ||
+      t.contains('bus') ||
+      t.contains('uber') ||
+      t.contains('taxi') ||
+      t.contains('fuel')) return 'Transport';
+  if (t.contains('bill') ||
+      t.contains('utility') ||
+      t.contains('electric') ||
+      t.contains('internet')) return 'Bills';
+  if (t.contains('shopping') || t.contains('clothes') || t.contains('shirt'))
+    return 'Shopping';
+  return 'Other';
 }

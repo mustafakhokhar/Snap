@@ -19,6 +19,17 @@ class _HomeScreenState extends State<HomeScreen>
   late TabController _tabController;
   final List<String> _tabs = ['Today', 'This Week', 'This Month'];
   String _selectedPeriod = 'today';
+  // One scroll controller per tab (cheap, no tickers)
+  final _todayScroll = ScrollController();
+  final _weekScroll = ScrollController();
+  final _monthScroll = ScrollController();
+
+// Simple client-side category filter per period
+  final Map<String, String> _categoryFilterFor = {
+    'today': 'All',
+    'week': 'All',
+    'month': 'All',
+  };
 
   @override
   void initState() {
@@ -33,6 +44,9 @@ class _HomeScreenState extends State<HomeScreen>
   @override
   void dispose() {
     _tabController.dispose();
+    _todayScroll.dispose();
+    _weekScroll.dispose();
+    _monthScroll.dispose();
     super.dispose();
   }
 
@@ -270,9 +284,18 @@ class _HomeScreenState extends State<HomeScreen>
             ),
           ),
           const SizedBox(height: 16),
+          // Category filter chips
+          _buildCategoryChips(expenses, 'today'),
+          const SizedBox(height: 8),
           // Expense List
           Expanded(
-            child: buildExpenseListSheet(context, expenses),
+            child: buildExpenseListSheet(
+              context,
+              expenses,
+              _categoryFilterFor,
+              period: 'today',
+              controller: _todayScroll,
+            ),
           ),
         ],
       ),
@@ -282,60 +305,79 @@ class _HomeScreenState extends State<HomeScreen>
   Widget _buildExpenseWeekContent(List<Expense> all) {
     final now = DateTime.now();
     final date = DateTime(now.year, now.month, now.day);
-    final delta = (date.weekday - DateTime.monday);
-    final weekStart = date.subtract(Duration(days: delta));
+    final delta = date.weekday - DateTime.monday; // 0..6
+    final weekStart = date.subtract(Duration(days: delta)); // Monday start
     final weekEnd = weekStart.add(const Duration(days: 7));
 
-    // Filter this week’s expenses
+    // Filter to this week
     final week = all
-        .where((e) =>
-            e.date
-                .isAfter(weekStart.subtract(const Duration(milliseconds: 1))) &&
-            e.date.isBefore(weekEnd))
+        .where((e) => !e.date.isBefore(weekStart) && e.date.isBefore(weekEnd))
         .toList();
 
-    // Totals per weekday (Mon..Sun)
+    // Apply category filter
+    final sel = _categoryFilterFor['week'] ?? 'All';
+    final filtered =
+        sel == 'All' ? week : week.where((e) => categoryOf(e) == sel).toList();
+
+    // Totals for the small bar strip
     final totals = List<double>.filled(7, 0);
     for (final e in week) {
-      final idx = ((e.date.weekday + 6) % 7); // Mon=0 ... Sun=6
+      final idx = ((e.date.weekday + 6) % 7); // Mon=0..Sun=6
       totals[idx] += e.amount;
     }
+    final weekTotal = totals.fold<double>(0, (a, b) => a + b);
+    final days = List.generate(7, (i) => weekStart.add(Duration(days: i)));
 
-    final totalThisWeek = totals.fold<double>(0, (a, b) => a + b);
+    // A per-day key map so we can jump to a header
+    final Map<DateTime, GlobalKey> dayKeys = {};
 
     return Column(
       children: [
-        // Header summary + compact bars
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
           child: Row(
             children: [
               Expanded(
-                child: Text(
-                  'This Week',
+                child: Text('This Week',
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleLarge
+                        ?.copyWith(fontWeight: FontWeight.w700)),
+              ),
+              Text('Rs ${weekTotal.toStringAsFixed(0)}',
                   style: Theme.of(context)
                       .textTheme
-                      .titleLarge
-                      ?.copyWith(fontWeight: FontWeight.w700),
-                ),
-              ),
-              Text(
-                'Rs ${totalThisWeek.toStringAsFixed(0)}',
-                style: Theme.of(context)
-                    .textTheme
-                    .titleMedium
-                    ?.copyWith(fontWeight: FontWeight.w700),
-              ),
+                      .titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w700)),
             ],
           ),
         ),
+        // Tappable weekday bars (jump to day)
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: _WeekBars(totals: totals), // super light widget below
+          child: _WeekBars(
+            totals: totals,
+            days: days,
+            onTapDay: (day) => _jumpToDay(day, _weekScroll, dayKeys),
+          ),
         ),
         const SizedBox(height: 8),
-        // The same fast sticky list you use elsewhere
-        Expanded(child: buildExpenseListSheet(context, week)),
+
+        // Category chips
+        _buildCategoryChips(week, 'week'),
+        const SizedBox(height: 8),
+
+        // Grouped list (uses keys to jump)
+        Expanded(
+          child: buildExpenseListSheet(
+            context,
+            filtered,
+            _categoryFilterFor,
+            period: 'week',
+            controller: _weekScroll,
+            dayKeys: dayKeys,
+          ),
+        ),
       ],
     );
   }
@@ -350,13 +392,22 @@ class _HomeScreenState extends State<HomeScreen>
         .where((e) => !e.date.isBefore(firstDay) && !e.date.isAfter(lastDay))
         .toList();
 
-    // Totals per calendar day
+    // Category filter
+    final sel = _categoryFilterFor['month'] ?? 'All';
+    final filtered = sel == 'All'
+        ? month
+        : month.where((e) => categoryOf(e) == sel).toList();
+
+    // Totals per day
     final daysInMonth = lastDay.day;
     final dayTotals = List<double>.filled(daysInMonth, 0);
     for (final e in month) {
       dayTotals[e.date.day - 1] += e.amount;
     }
     final monthTotal = dayTotals.fold<double>(0, (a, b) => a + b);
+
+    // Keys for jump
+    final Map<DateTime, GlobalKey> dayKeys = {};
 
     return Column(
       children: [
@@ -365,37 +416,51 @@ class _HomeScreenState extends State<HomeScreen>
           child: Row(
             children: [
               Expanded(
-                child: Text(
-                  'This Month',
+                child: Text('This Month',
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleLarge
+                        ?.copyWith(fontWeight: FontWeight.w700)),
+              ),
+              Text('Rs ${monthTotal.toStringAsFixed(0)}',
                   style: Theme.of(context)
                       .textTheme
-                      .titleLarge
-                      ?.copyWith(fontWeight: FontWeight.w700),
-                ),
-              ),
-              Text(
-                'Rs ${monthTotal.toStringAsFixed(0)}',
-                style: Theme.of(context)
-                    .textTheme
-                    .titleMedium
-                    ?.copyWith(fontWeight: FontWeight.w700),
-              ),
+                      .titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w700)),
             ],
           ),
         ),
 
-        // Heatmap grid (7 columns) — cheap to draw
+        // Tappable heatmap
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: _MonthHeatmap(
             firstDay: firstDay,
             lastDay: lastDay,
             totals: dayTotals,
+            onTapDayIndex: (dayIndex1Based) {
+              final day =
+                  DateTime(firstDay.year, firstDay.month, dayIndex1Based);
+              _jumpToDay(day, _monthScroll, dayKeys);
+            },
           ),
         ),
         const SizedBox(height: 8),
 
-        Expanded(child: buildExpenseListSheet(context, month)),
+        // Category chips
+        _buildCategoryChips(month, 'month'),
+        const SizedBox(height: 8),
+
+        Expanded(
+          child: buildExpenseListSheet(
+            context,
+            filtered,
+            _categoryFilterFor,
+            period: 'month',
+            controller: _monthScroll,
+            dayKeys: dayKeys,
+          ),
+        ),
       ],
     );
   }
@@ -484,19 +549,55 @@ class _HomeScreenState extends State<HomeScreen>
       ),
     );
   }
+
+  Widget _buildCategoryChips(List<Expense> source, String period) {
+    // Build unique categories from data (fallback from title if no explicit field)
+    final cats = <String>{};
+    for (final e in source) {
+      cats.add(categoryOf(e));
+    }
+    final categories = ['All', ...cats.toList()..sort()];
+    final selected = _categoryFilterFor[period] ?? 'All';
+
+    return SizedBox(
+      height: 40,
+      child: ListView.separated(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        scrollDirection: Axis.horizontal,
+        itemCount: categories.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (context, i) {
+          final c = categories[i];
+          final selectedNow = c == selected;
+          return ChoiceChip(
+            label: Text(c),
+            selected: selectedNow,
+            onSelected: (v) {
+              setState(() => _categoryFilterFor[period] = v ? c : 'All');
+            },
+          );
+        },
+      ),
+    );
+  }
 }
 
 class _WeekBars extends StatelessWidget {
   final List<double> totals; // length 7, Mon..Sun
-  const _WeekBars({super.key, required this.totals});
+  final List<DateTime> days;
+  final void Function(DateTime day) onTapDay;
+  const _WeekBars(
+      {super.key,
+      required this.totals,
+      required this.days,
+      required this.onTapDay});
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final labels = const ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+    const labels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
     final maxVal = totals.fold<double>(0, (m, v) => math.max(m, v));
-    final base = 6.0; // minimum visible height
-    final maxBar = 84.0;
+    const base = 6.0, maxBar = 84.0;
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,
@@ -504,24 +605,28 @@ class _WeekBars extends StatelessWidget {
         final t = totals[i];
         final h = maxVal == 0 ? base : base + (t / maxVal) * (maxBar - base);
         return Expanded(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeOutCubic,
-                height: h,
-                decoration: BoxDecoration(
-                  color: cs.secondaryContainer.withOpacity(0.9),
-                  borderRadius: BorderRadius.circular(8),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(10),
+            onTap: () => onTapDay(days[i]),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 250),
+                  curve: Curves.easeOutCubic,
+                  height: h,
+                  decoration: BoxDecoration(
+                    color: cs.secondaryContainer.withOpacity(0.9),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 6),
-              Text(labels[i],
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: cs.onSurface.withOpacity(0.7),
-                      )),
-            ],
+                const SizedBox(height: 6),
+                Text(labels[i],
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: cs.onSurface.withOpacity(0.7),
+                        )),
+              ],
+            ),
           ),
         );
       }),
@@ -533,40 +638,56 @@ class _MonthHeatmap extends StatelessWidget {
   final DateTime firstDay;
   final DateTime lastDay;
   final List<double> totals; // index = day-1
+  final void Function(int dayIndex1Based) onTapDayIndex;
+
   const _MonthHeatmap({
     super.key,
     required this.firstDay,
     required this.lastDay,
     required this.totals,
+    required this.onTapDayIndex,
   });
 
   @override
   Widget build(BuildContext context) {
     final totalMax = totals.fold<double>(0, (m, v) => math.max(m, v));
-    final cs = Theme.of(context).colorScheme;
 
-    // Layout constants
     const cell = 16.0;
     const gap = 4.0;
     final startOffset = (firstDay.weekday + 6) % 7; // Mon=0..Sun=6
     final cells = startOffset + lastDay.day;
-    final rows = ((cells + 6) ~/ 7); // ceil
+    final rows = ((cells + 6) ~/ 7);
     final height = rows * cell + (rows - 1) * gap;
 
     return RepaintBoundary(
       child: SizedBox(
         height: height,
-        child: CustomPaint(
-          painter: _MonthHeatmapPainter(
-            firstDay: firstDay,
-            totals: totals,
-            startOffset: startOffset,
-            cell: cell,
-            gap: gap,
-            rows: rows,
-            surface: cs.surfaceVariant,
-            high: cs.primary, // use theme primary as high-intensity color
-            maxVal: totalMax == 0 ? 1 : totalMax,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTapDown: (d) {
+            final dx = d.localPosition.dx;
+            final dy = d.localPosition.dy;
+            final col = (dx / (cell + gap)).floor();
+            final row = (dy / (cell + gap)).floor();
+            if (col < 0 || col > 6 || row < 0 || row >= rows) return;
+            final idx = row * 7 + col; // includes leading offset
+            final dayIndex = idx - startOffset + 1;
+            if (dayIndex >= 1 && dayIndex <= lastDay.day) {
+              onTapDayIndex(dayIndex);
+            }
+          },
+          child: CustomPaint(
+            painter: _MonthHeatmapPainter(
+              firstDay: firstDay,
+              totals: totals,
+              startOffset: startOffset,
+              cell: cell,
+              gap: gap,
+              rows: rows,
+              surface: Theme.of(context).colorScheme.surfaceVariant,
+              high: Theme.of(context).colorScheme.primary,
+              maxVal: totalMax == 0 ? 1 : totalMax,
+            ),
           ),
         ),
       ),
@@ -605,7 +726,7 @@ class _MonthHeatmapPainter extends CustomPainter {
       final x = col * (cell + gap);
       final y = row * (cell + gap);
 
-      final t = totals[d] / maxVal; // 0..1
+      final t = totals[d] / maxVal;
       final color = Color.lerp(surface, high, t.clamp(0, 1))!;
       paint.color = color.withOpacity(0.85);
       final r = RRect.fromRectAndRadius(
@@ -620,10 +741,26 @@ class _MonthHeatmapPainter extends CustomPainter {
   bool shouldRepaint(covariant _MonthHeatmapPainter old) {
     return old.totals != totals ||
         old.startOffset != startOffset ||
+        old.rows != rows ||
         old.cell != cell ||
         old.gap != gap ||
         old.maxVal != maxVal ||
         old.surface != surface ||
         old.high != high;
   }
+}
+
+Future<void> _jumpToDay(
+  DateTime day,
+  ScrollController controller,
+  Map<DateTime, GlobalKey> keys,
+) async {
+  final key = keys[DateTime(day.year, day.month, day.day)];
+  if (key?.currentContext == null) return;
+  await Scrollable.ensureVisible(
+    key!.currentContext!,
+    duration: const Duration(milliseconds: 350),
+    curve: Curves.easeOutCubic,
+    alignment: 0.0, // top
+  );
 }
