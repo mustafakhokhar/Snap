@@ -13,7 +13,8 @@ class ExpensesLoading extends ExpensesListState {}
 class ExpensesLoaded extends ExpensesListState {
   final List<Expense> items;
   final Period period;
-  ExpensesLoaded(this.items, this.period);
+  final bool refreshing;
+  ExpensesLoaded(this.items, this.period, {this.refreshing = false});
 }
 
 class ExpensesEmpty extends ExpensesListState {
@@ -32,13 +33,20 @@ class ExpensesListCubit extends Cubit<ExpensesListState> {
   ExpensesListCubit(this._getExpenses) : super(ExpensesInitial());
 
   Future<void> load(Period p) async {
-    emit(ExpensesLoading());
+    final prev = state;
+
+    if (prev is ExpensesLoaded) {
+      emit(ExpensesLoaded(prev.items, p, refreshing: true));
+    } else {
+      emit(ExpensesLoading());
+    }
+
     final res = await _getExpenses(p);
     res.fold(
       (f) => emit(ExpensesError(f.message)),
       (items) => items.isEmpty
           ? emit(ExpensesEmpty(p))
-          : emit(ExpensesLoaded(items, p)),
+          : emit(ExpensesLoaded(items, p, refreshing: false)),
     );
   }
 

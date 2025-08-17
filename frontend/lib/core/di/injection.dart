@@ -1,4 +1,3 @@
-import 'package:frontend/features/expense/data/datasource/local_datasource.dart';
 import 'package:frontend/features/expense/data/datasource/ocr_datasource.dart';
 import 'package:frontend/features/expense/data/datasource/voice_datasource.dart';
 import 'package:frontend/features/expense/presentation/cubits/add_expense_cubit.dart';
@@ -38,8 +37,6 @@ Future<void> initializeDependencies() async {
 
 void setupDataSources() {
   // Expenses
-  getIt.registerLazySingleton<ExpenseLocalDataSource>(
-      () => InMemoryExpenseLocalDataSource());
   getIt.registerLazySingleton<OCRDataSource>(() => OCRDataSourceFake());
   getIt.registerLazySingleton<VoiceDataSource>(() => VoiceDataSourceFake());
   getIt.registerLazySingleton<AbstarctRemoteDataSource>(
@@ -52,11 +49,8 @@ void setupDataSources() {
 void setupRepositories() {
   // Expenses
   getIt.registerLazySingleton<ExpenseRepository>(
-    () => ExpenseRepositoryImpl(
-        getIt<ExpenseLocalDataSource>(),
-        getIt<OCRDataSource>(),
-        getIt<VoiceDataSource>(),
-        getIt<AbstarctRemoteDataSource>()),
+    () => ExpenseRepositoryImpl(getIt<OCRDataSource>(),
+        getIt<VoiceDataSource>(), getIt<AbstarctRemoteDataSource>()),
   );
   // Categories
 }

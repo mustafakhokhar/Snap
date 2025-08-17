@@ -19,16 +19,24 @@ class _HomeScreenState extends State<HomeScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final List<String> _tabs = ['Today', 'This Week', 'This Month'];
-  String _selectedPeriod = 'today';
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: _tabs.length, vsync: this);
-    // Load expenses when screen initializes
+
+    // initial cold load
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<ExpensesListCubit>().load(Period.today());
     });
+
+    // load when tab settles (avoid double-trigger during animation)
+    // _tabController.addListener(() {
+    //   if (_tabController.indexIsChanging) return; // wait until it stops sliding
+    //   final idx = _tabController.index;
+    //   final periods = [Period.today(), Period.thisWeek(), Period.thisMonth()];
+    //   context.read<ExpensesListCubit>().load(periods[idx]);
+    // });
   }
 
   @override
@@ -38,22 +46,8 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   void _onTabChanged(int index) {
-    setState(() {
-      switch (index) {
-        case 0:
-          _selectedPeriod = 'today';
-          context.read<ExpensesListCubit>().load(Period.today());
-          break;
-        case 1:
-          _selectedPeriod = 'week';
-          context.read<ExpensesListCubit>().load(Period.thisWeek());
-          break;
-        case 2:
-          _selectedPeriod = 'month';
-          context.read<ExpensesListCubit>().load(Period.thisMonth());
-          break;
-      }
-    });
+    final periods = [Period.today(), Period.thisWeek(), Period.thisMonth()];
+    context.read<ExpensesListCubit>().load(periods[index]);
   }
 
   @override
@@ -148,9 +142,9 @@ class _HomeScreenState extends State<HomeScreen>
         body: TabBarView(
           controller: _tabController,
           children: [
-            _buildTabContent(_selectedPeriod),
-            _buildTabContent(_selectedPeriod),
-            _buildTabContent(_selectedPeriod),
+            _buildTabContent('today'),
+            _buildTabContent('week'),
+            _buildTabContent('month'),
           ],
         ),
       ),

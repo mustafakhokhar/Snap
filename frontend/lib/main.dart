@@ -7,7 +7,6 @@ import 'package:frontend/features/expense/presentation/cubits/expenses_list_cubi
 import 'package:frontend/features/expense/presentation/pages/add_expense_screen.dart';
 import 'package:frontend/features/expense/presentation/pages/home_screen.dart';
 import 'package:frontend/features/expense/presentation/pages/pending_screen.dart';
-import 'package:frontend/features/expense/presentation/pages/stats_screen.dart';
 import 'package:frontend/features/expense/presentation/pages/settings_screen.dart';
 
 void main() async {
