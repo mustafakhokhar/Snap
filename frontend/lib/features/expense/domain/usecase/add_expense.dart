@@ -1,12 +1,14 @@
+import 'package:frontend/core/utils/result.dart';
 import 'package:frontend/features/expense/domain/entity/expense.dart';
-import 'package:frontend/features/expense/domain/repository/expense_repo.dart';
+import 'package:frontend/features/expense/domain/repository/repository_interface.dart';
 
 class AddExpense {
   final ExpenseRepository repository;
 
   AddExpense(this.repository);
 
-  Future<void> call(Expense expense) async {
-    await repository.addExpense(expense);
+  Future<Result<Expense>> call(ExpenseDraft draft) async {
+    return await repository.add(draft);
   }
+  // Future<Result<Expense>> call(ExpenseDraft draft) => repo.add(draft);
 }

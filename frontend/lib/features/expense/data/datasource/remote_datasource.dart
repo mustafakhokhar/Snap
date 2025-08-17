@@ -1,11 +1,11 @@
 import 'package:frontend/features/expense/data/models/expense_model.dart';
 
-abstract class ExpenseRemoteDataSource {
+abstract class AbstarctRemoteDataSource {
   Future<void> addExpense(ExpenseModel expense);
   Future<List<ExpenseModel>> getExpenses({String? period});
 }
 
-class ExpenseRemoteDataSourceImpl implements ExpenseRemoteDataSource {
+class RemoteDataSourceFake implements AbstarctRemoteDataSource {
   @override
   Future<void> addExpense(ExpenseModel expense) async {
     // Simulate API call (replace with Dio or HTTP later)
@@ -22,94 +22,127 @@ class ExpenseRemoteDataSourceImpl implements ExpenseRemoteDataSource {
     return [
       ExpenseModel(
         id: '2',
-        name: 'John Doe',
-        category: 'Transport',
-        description: 'Uber ride',
         title: 'Transport',
         amount: 15.00,
-        date: DateTime.now(),
+        createdAt: DateTime.now(),
+        currency: '',
+        categoryId: '',
+        merchant: '',
+        note: '',
+        paymentMethod: '',
       ),
       ExpenseModel(
         id: '3',
-        name: 'Dogar',
-        category: 'Food',
-        description: 'Dinner at restaurant',
         title: 'Dinner',
         amount: 250.00,
-        date: DateTime.now(),
+        createdAt: DateTime.now(),
+        currency: '',
+        categoryId: '',
+        merchant: '',
+        note: '',
+        paymentMethod: '',
       ),
       ExpenseModel(
         id: '4',
-        name: 'John Doe',
-        category: 'Transport',
-        description: 'Uber ride',
         title: 'Transport',
         amount: 15.00,
-        date: DateTime.now(),
+        createdAt: DateTime.now(),
+        currency: '',
+        categoryId: '',
+        merchant: '',
+        note: '',
+        paymentMethod: '',
       ),
       ExpenseModel(
         id: '5',
-        name: 'John Doe',
-        category: 'Transport',
-        description: 'Uber ride',
         title: 'Transport',
         amount: 15.00,
-        date: DateTime.now(),
+        createdAt: DateTime.now(),
+        currency: '',
+        categoryId: '',
+        merchant: '',
+        note: '',
+        paymentMethod: '',
       ),
       ExpenseModel(
         id: '1',
-        name: 'John Doe',
-        category: 'Food',
-        description: 'Lunch at restaurant',
         title: 'Lunch',
         amount: 25.50,
-        date: DateTime.now().subtract(const Duration(days: 1)),
+        createdAt: DateTime.now().subtract(const Duration(days: 1)),
+        currency: '',
+        categoryId: '',
+        merchant: '',
+        note: '',
+        paymentMethod: '',
       ),
       ExpenseModel(
         id: '6',
-        name: 'John Doe',
-        category: 'Transport',
-        description: 'Uber ride',
         title: 'Transport',
         amount: 15.00,
-        date: DateTime.now().subtract(const Duration(days: 1)),
+        createdAt: DateTime.now().subtract(const Duration(days: 1)),
+        currency: '',
+        categoryId: '',
+        merchant: '',
+        note: '',
+        paymentMethod: '',
       ),
       ExpenseModel(
         id: '7',
-        name: 'John Doe',
-        category: 'Transport',
-        description: 'Uber ride',
         title: 'Transport',
         amount: 15.00,
-        date: DateTime.now().subtract(const Duration(days: 1)),
+        createdAt: DateTime.now().subtract(const Duration(days: 1)),
+        currency: '',
+        categoryId: '',
+        merchant: '',
+        note: '',
+        paymentMethod: '',
       ),
       ExpenseModel(
         id: '8',
-        name: 'John Doe',
-        category: 'Transport',
-        description: 'Uber ride',
         title: 'Transport',
         amount: 15.00,
-        date: DateTime.now().subtract(const Duration(days: 1)),
+        createdAt: DateTime.now().subtract(const Duration(days: 1)),
+        currency: '',
+        categoryId: '',
+        merchant: '',
+        note: '',
+        paymentMethod: '',
       ),
       ExpenseModel(
         id: '9',
-        name: 'John Doe',
-        category: 'Transport',
-        description: 'Uber ride',
         title: 'Transport',
         amount: 15.00,
-        date: DateTime.now().subtract(const Duration(days: 1)),
+        createdAt: DateTime.now().subtract(const Duration(days: 1)),
+        currency: '',
+        categoryId: '',
+        merchant: '',
+        note: '',
+        paymentMethod: '',
       ),
       ExpenseModel(
         id: '10',
-        name: 'John Doe',
-        category: 'Transport',
-        description: 'Uber ride',
         title: 'Transport',
         amount: 15.00,
-        date: DateTime.now().subtract(const Duration(days: 1)),
+        createdAt: DateTime.now().subtract(const Duration(days: 1)),
+        currency: '',
+        categoryId: '',
+        merchant: '',
+        note: '',
+        paymentMethod: '',
       ),
     ];
+  }
+}
+
+class RemoteDataSource implements AbstarctRemoteDataSource {
+  @override
+  Future<void> addExpense(ExpenseModel expense) async {
+    // TODO: Implement addExpense
+  }
+
+  @override
+  Future<List<ExpenseModel>> getExpenses({String? period}) async {
+    // TODO: Implement getExpenses
+    return [];
   }
 }

@@ -6,7 +6,8 @@ Widget buildExpenseListSheet(BuildContext context, List<Expense> expenses) {
   // Group by calendar day and sort desc (newest first)
   final Map<DateTime, List<Expense>> grouped = {};
   for (final e in expenses) {
-    final day = DateTime(e.date.year, e.date.month, e.date.day);
+    final day =
+        DateTime(e.expenseDate.year, e.expenseDate.month, e.expenseDate.day);
     (grouped[day] ??= []).add(e);
   }
   final days = grouped.keys.toList()

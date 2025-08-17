@@ -2,8 +2,9 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:frontend/core/utils/period.dart';
 import 'package:frontend/features/expense/domain/entity/expense.dart';
-import 'package:frontend/features/expense/presentation/cubits/expense_cubit.dart';
+import 'package:frontend/features/expense/presentation/cubits/expenses_list_cubit.dart';
 import 'package:frontend/features/expense/presentation/widgets/expense_list.dart';
 import 'package:lottie/lottie.dart';
 
@@ -26,7 +27,7 @@ class _HomeScreenState extends State<HomeScreen>
     _tabController = TabController(length: _tabs.length, vsync: this);
     // Load expenses when screen initializes
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<ExpenseCubit>().loadExpenses(period: _selectedPeriod);
+      context.read<ExpensesListCubit>().load(Period.today());
     });
   }
 
@@ -41,16 +42,18 @@ class _HomeScreenState extends State<HomeScreen>
       switch (index) {
         case 0:
           _selectedPeriod = 'today';
+          context.read<ExpensesListCubit>().load(Period.today());
           break;
         case 1:
           _selectedPeriod = 'week';
+          context.read<ExpensesListCubit>().load(Period.thisWeek());
           break;
         case 2:
           _selectedPeriod = 'month';
+          context.read<ExpensesListCubit>().load(Period.thisMonth());
           break;
       }
     });
-    context.read<ExpenseCubit>().loadExpenses(period: _selectedPeriod);
   }
 
   @override
@@ -155,12 +158,12 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Widget _buildTabContent(String period) {
-    return BlocBuilder<ExpenseCubit, ExpenseState>(
+    return BlocBuilder<ExpensesListCubit, ExpensesListState>(
       builder: (context, state) {
-        if (state is ExpenseLoading) {
+        if (state is ExpensesLoading) {
           return const Center(child: CircularProgressIndicator());
-        } else if (state is ExpenseSuccess) {
-          final expenses = state.expenses;
+        } else if (state is ExpensesLoaded) {
+          final expenses = state.items;
           if (expenses.isEmpty) return _buildExpenseEmptyState(period);
 
           if (period == 'today') return _buildExpenseTodayContent(expenses);
@@ -168,7 +171,7 @@ class _HomeScreenState extends State<HomeScreen>
           if (period == 'month') return _buildExpenseMonthContent(expenses);
 
           return _buildExpenseEmptyState(period);
-        } else if (state is ExpenseError) {
+        } else if (state is ExpensesError) {
           return _buildExpenseErrorState(state.message);
         }
         return _buildExpenseEmptyState(period);
@@ -289,15 +292,15 @@ class _HomeScreenState extends State<HomeScreen>
     // Filter this week’s expenses
     final week = all
         .where((e) =>
-            e.date
+            e.expenseDate
                 .isAfter(weekStart.subtract(const Duration(milliseconds: 1))) &&
-            e.date.isBefore(weekEnd))
+            e.expenseDate.isBefore(weekEnd))
         .toList();
 
     // Totals per weekday (Mon..Sun)
     final totals = List<double>.filled(7, 0);
     for (final e in week) {
-      final idx = ((e.date.weekday + 6) % 7); // Mon=0 ... Sun=6
+      final idx = ((e.expenseDate.weekday + 6) % 7); // Mon=0 ... Sun=6
       totals[idx] += e.amount;
     }
 
@@ -347,14 +350,16 @@ class _HomeScreenState extends State<HomeScreen>
     final lastDay = nextMonth.subtract(const Duration(days: 1));
 
     final month = all
-        .where((e) => !e.date.isBefore(firstDay) && !e.date.isAfter(lastDay))
+        .where((e) =>
+            !e.expenseDate.isBefore(firstDay) &&
+            !e.expenseDate.isAfter(lastDay))
         .toList();
 
     // Totals per calendar day
     final daysInMonth = lastDay.day;
     final dayTotals = List<double>.filled(daysInMonth, 0);
     for (final e in month) {
-      dayTotals[e.date.day - 1] += e.amount;
+      dayTotals[e.expenseDate.day - 1] += e.amount;
     }
     final monthTotal = dayTotals.fold<double>(0, (a, b) => a + b);
 
@@ -474,9 +479,7 @@ class _HomeScreenState extends State<HomeScreen>
           const SizedBox(height: 16),
           ElevatedButton(
             onPressed: () {
-              context
-                  .read<ExpenseCubit>()
-                  .loadExpenses(period: _selectedPeriod);
+              context.read<ExpensesListCubit>().refresh();
             },
             child: const Text('Retry'),
           ),

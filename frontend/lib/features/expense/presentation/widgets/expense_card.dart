@@ -5,7 +5,7 @@ Widget buildExpenseCard(BuildContext context, Expense expense,
     {bool showDivider = true}) {
   final cs = Theme.of(context).colorScheme;
   final textTheme = Theme.of(context).textTheme;
-  final timeLabel = TimeOfDay.fromDateTime(expense.date).format(context);
+  final timeLabel = TimeOfDay.fromDateTime(expense.expenseDate).format(context);
 
   // minimal, native-feel tile (no Card)
   return RepaintBoundary(
@@ -54,7 +54,7 @@ Widget buildExpenseCard(BuildContext context, Expense expense,
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          expense.description,
+                          expense.note ?? '',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: textTheme.bodySmall?.copyWith(

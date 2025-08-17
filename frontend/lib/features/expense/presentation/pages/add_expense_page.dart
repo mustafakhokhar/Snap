@@ -1,3 +1,4 @@
+// DEPRECATED
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:frontend/features/expense/domain/entity/expense.dart';
@@ -19,15 +20,18 @@ class _AddExpensePageState extends State<AddExpensePage> {
     if (_formKey.currentState!.validate()) {
       final expense = Expense(
         id: '',
-        name: '',
-        category: '',
-        description: '',
+        merchant: '',
+        categoryId: '',
+        note: '',
         title: _titleController.text,
         amount: double.parse(_amountController.text),
-        date: DateTime.now(),
+        expenseDate: DateTime.now(),
+        currency: 'PKR',
+        paymentMethod: 'Cash',
+        createdAt: DateTime.now(),
       );
 
-      context.read<AddExpenseCubit>().submitExpense(expense);
+      context.read<AddExpenseCubit>().save();
     }
   }
 
@@ -37,7 +41,7 @@ class _AddExpensePageState extends State<AddExpensePage> {
       appBar: AppBar(title: Text("Add Expense")),
       body: BlocConsumer<AddExpenseCubit, AddExpenseState>(
         listener: (context, state) {
-          if (state.isSuccess) {
+          if (state.isSaving) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text("Expense added!")),
             );
@@ -61,7 +65,7 @@ class _AddExpensePageState extends State<AddExpensePage> {
                   validator: (val) => val!.isEmpty ? 'Required' : null,
                 ),
                 SizedBox(height: 20),
-                if (state.isLoading) CircularProgressIndicator(),
+                if (state.isSaving) CircularProgressIndicator(),
                 ElevatedButton(
                   onPressed: () => _submit(context),
                   child: Text('Submit'),
