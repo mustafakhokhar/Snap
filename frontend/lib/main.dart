@@ -4,7 +4,7 @@ import 'package:frontend/core/di/injection.dart';
 import 'package:frontend/core/theme/app_theme.dart';
 import 'package:frontend/features/expense/presentation/cubits/add_expense_cubit.dart';
 import 'package:frontend/features/expense/presentation/cubits/expenses_list_cubit.dart';
-import 'package:frontend/features/expense/presentation/pages/add_expense_page.dart';
+import 'package:frontend/features/expense/presentation/pages/add_expense_screen.dart';
 import 'package:frontend/features/expense/presentation/pages/home_screen.dart';
 import 'package:frontend/features/expense/presentation/pages/pending_screen.dart';
 import 'package:frontend/features/expense/presentation/pages/stats_screen.dart';
@@ -47,8 +47,8 @@ class _MainAppState extends State<MainApp> {
   final List<Widget> _screens = [
     HomeScreen(),
     PendingScreen(),
-    AddExpensePage(),
-    StatsScreen(),
+    AddExpenseScreen(),
+    // StatsScreen(),
     SettingsScreen(),
   ];
 
