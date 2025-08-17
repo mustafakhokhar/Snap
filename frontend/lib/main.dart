@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:frontend/core/di/injection.dart';
 import 'package:frontend/core/theme/app_theme.dart';
+import 'package:frontend/core/utils/period.dart';
 import 'package:frontend/features/expense/presentation/cubits/add_expense_cubit.dart';
+import 'package:frontend/features/expense/presentation/cubits/categories_cubit.dart';
 import 'package:frontend/features/expense/presentation/cubits/expenses_list_cubit.dart';
 import 'package:frontend/features/expense/presentation/pages/add_expense_screen.dart';
 import 'package:frontend/features/expense/presentation/pages/home_screen.dart';
@@ -28,6 +30,7 @@ class MyApp extends StatelessWidget {
         providers: [
           BlocProvider(create: (context) => getIt<ExpensesListCubit>()),
           BlocProvider(create: (context) => getIt<AddExpenseCubit>()),
+          BlocProvider(create: (context) => getIt<CategoriesCubit>()),
         ],
         child: MainApp(),
       ),
@@ -84,9 +87,8 @@ class _MainAppState extends State<MainApp> {
           type: BottomNavigationBarType.fixed,
           currentIndex: _currentIndex,
           onTap: (index) {
-            setState(() {
-              _currentIndex = index;
-            });
+            context.read<ExpensesListCubit>().load(Period.today());
+            setState(() => _currentIndex = index);
           },
           selectedItemColor: Theme.of(context).primaryColor,
           unselectedItemColor: Colors.grey,

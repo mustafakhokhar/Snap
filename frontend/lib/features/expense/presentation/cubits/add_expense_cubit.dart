@@ -1,7 +1,7 @@
 import 'package:frontend/features/expense/data/datasource/ocr_datasource.dart';
 import 'package:frontend/features/expense/data/datasource/voice_datasource.dart';
 import 'package:frontend/features/expense/domain/entity/expense.dart';
-import 'package:frontend/features/expense/domain/usecase/add_expense.dart';
+import 'package:frontend/features/expense/domain/usecase/expense_add.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 enum DraftSource { manual, ocr, voice }

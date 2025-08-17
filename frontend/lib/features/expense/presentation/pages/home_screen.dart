@@ -29,14 +29,6 @@ class _HomeScreenState extends State<HomeScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<ExpensesListCubit>().load(Period.today());
     });
-
-    // load when tab settles (avoid double-trigger during animation)
-    // _tabController.addListener(() {
-    //   if (_tabController.indexIsChanging) return; // wait until it stops sliding
-    //   final idx = _tabController.index;
-    //   final periods = [Period.today(), Period.thisWeek(), Period.thisMonth()];
-    //   context.read<ExpensesListCubit>().load(periods[idx]);
-    // });
   }
 
   @override
@@ -70,7 +62,7 @@ class _HomeScreenState extends State<HomeScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Good morning,',
+                      _getGreeting(),
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             fontSize: 14,
                           ),
@@ -623,4 +615,11 @@ class _MonthHeatmapPainter extends CustomPainter {
         old.surface != surface ||
         old.high != high;
   }
+}
+
+String _getGreeting() {
+  final hour = DateTime.now().hour;
+  if (hour < 12) return 'Good morning,';
+  if (hour < 18) return 'Good afternoon,';
+  return 'Good evening,';
 }

@@ -31,11 +31,5 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
     } catch (e) {
       return Err(Failure('Failed to load expenses', cause: e));
     }
-    // try {
-    //   final models = await local.getByDateRange(period.start, period.end);
-    //   return Ok(models.map((m) => m.toEntity()).toList());
-    // } catch (e) {
-    //   return Err(Failure('Failed to load expenses', cause: e));
-    // }
   }
 }
